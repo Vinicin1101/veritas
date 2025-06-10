@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veritas Teste - CDN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Teste SDK Antifraude</h1>
+        <p>Esta página testa o SDK Antifraude carregado via CDN.</p>
+        
+        <div class="test-section">
+            <h3>1. Inicialização do SDK</h3>
+            <button onclick="initializeSDK()">Inicializar SDK</button>
+            <div id="init-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Coleta de Dados</h3>
+            <button onclick="collectData()">Coletar Dados</button>
+            <div id="collect-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Verificação de Risco</h3>
+            <button onclick="checkRisk()">Verificar Risco (Login)</button>
+            <button onclick="checkPurchaseRisk()">Verificar Risco (Compra)</button>
+            <div id="risk-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Controle de Coleta Automática</h3>
+            <button onclick="startAutoCollection()">Iniciar Coleta Automática</button>
+            <button onclick="stopAutoCollection()">Parar Coleta Automática</button>
+            <div id="auto-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Logs do Console</h3>
+            <div id="console-logs" style="max-height: 200px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <!-- Carregar SDK via arquivo local (simulando CDN) -->
+    <script src="../../dist/veritas-sdk.umd.js"></script>
+    
+    <script>
+        let sdk = null;
+        const consoleDiv = document.getElementById('console-logs');
+        
+        // Interceptar console.log para mostrar na página
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'warn' ? '#ff0' : '#0f0';
+            consoleDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isError ? 'error' : 'success'}`;
+            element.innerHTML = content;
+        }
+
+        function initializeSDK() {
+            try {
+                sdk = new Veritas.Veritas({
+                    endpoint: 'http://localhost:3000/identity/verify',
+                    secret: 'test-secret-key',
+                    debug: true,
+                    collectInterval: 300,
+                    autoCollect: false // Iniciar sem coleta automática
+                });
+                
+                sdk.init();
+                
+                showResult('init-result', '✅ SDK inicializado com sucesso!');
+                console.log('SDK inicializado:', sdk);
+            } catch (error) {
+                showResult('init-result', `❌ Erro ao inicializar SDK: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        function collectData() {
+            if (!sdk) {
+                showResult('collect-result', '❌ SDK não foi inicializado', true);
+                return;
+            }
+
+            try {
+                const data = sdk.collect();
+                showResult('collect-result', `✅ Dados coletados com sucesso!<br><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                console.log('Dados coletados:', data);
+            } catch (error) {
+                showResult('collect-result', `❌ Erro ao coletar dados: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        async function checkRisk() {
+            if (!sdk) {
+                showResult('risk-result', '❌ SDK não foi inicializado', true);
+                return;
+            }
+
+            try {
+                showResult('risk-result', '⏳ Verificando risco...');
+                
+                const result = await sdk.checkRisk({
+                    action: 'login',
+                    userId: 'user123',
+                    timestamp: Date.now()
+                });
+                
+                showResult('risk-result', `✅ Risco verificado!<br><pre>${JSON.stringify(result, null, 2)}</pre>`);
+                console.log('Resultado da verificação:', result);
+            } catch (error) {
+                showResult('risk-result', `❌ Erro ao verificar risco: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        async function checkPurchaseRisk() {
+            if (!sdk) {
+                showResult('risk-result', '❌ SDK não foi inicializado', true);
+                return;
+            }
+
+            try {
+                showResult('risk-result', '⏳ Verificando risco de compra...');
+                
+                const result = await sdk.checkRisk({
+                    action: 'purchase',
+                    amount: 299.99,
+                    currency: 'BRL',
+                    productId: 'prod123'
+                });
+                
+                showResult('risk-result', `✅ Risco de compra verificado!<br><pre>${JSON.stringify(result, null, 2)}</pre>`);
+                console.log('Resultado da verificação de compra:', result);
+            } catch (error) {
+                showResult('risk-result', `❌ Erro ao verificar risco: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        function startAutoCollection() {
+            if (!sdk) {
+                showResult('auto-result', '❌ SDK não foi inicializado', true);
+                return;
+            }
+
+            try {
+                sdk.startAutoCollection();
+                showResult('auto-result', '✅ Coleta automática iniciada!');
+                console.log('Coleta automática iniciada');
+            } catch (error) {
+                showResult('auto-result', `❌ Erro ao iniciar coleta automática: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        function stopAutoCollection() {
+            if (!sdk) {
+                showResult('auto-result', '❌ SDK não foi inicializado', true);
+                return;
+            }
+
+            try {
+                sdk.stopAutoCollection();
+                showResult('auto-result', '✅ Coleta automática parada!');
+                console.log('Coleta automática parada');
+            } catch (error) {
+                showResult('auto-result', `❌ Erro ao parar coleta automática: ${error.message}`, true);
+                console.error('Erro:', error);
+            }
+        }
+
+        // Simular atividade do usuário para coleta de dados comportamentais
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Página carregada. Simulando atividade do usuário...');
+            
+            // Simular movimentos do mouse
+            let mouseX = 100, mouseY = 100;
+            setInterval(() => {
+                mouseX += Math.random() * 20 - 10;
+                mouseY += Math.random() * 20 - 10;
+                
+                const event = new MouseEvent('mousemove', {
+                    clientX: Math.max(0, Math.min(window.innerWidth, mouseX)),
+                    clientY: Math.max(0, Math.min(window.innerHeight, mouseY))
+                });
+                document.dispatchEvent(event);
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+

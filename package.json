@@ -1,0 +1,51 @@
+{
+  "name": "@hakai/veritas",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SDK Antifraude para aplicações web - proteção de ponta-a-ponta",
+  "main": "dist/veritas-sdk.cjs.js",
+  "module": "dist/veritas-sdk.esm.js",
+  "browser": "dist/veritas-sdk.umd.js",
+  "unpkg": "dist/veritas-sdk.umd.min.js",
+  "jsdelivr": "dist/veritas-sdk.umd.min.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/",
+    "types/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -c -w",
+    "dev": "rollup -c -w",
+    "test": "node examples/test-node.js",
+    "serve": "python3 -m http.server 8080"
+  },
+  "keywords": [
+    "antifraud",
+    "veritas",
+    "security",
+    "fingerprinting",
+    "fraud-detection",
+    "sdk",
+    "browser",
+    "nodejs"
+  ],
+  "author": "Vinicin1101",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-terser": "^0.4.0",
+    "rollup": "^4.0.0"
+  },
+  "dependencies": {},
+  "exports": {
+    ".": {
+      "import": "./dist/veritas-sdk.esm.js",
+      "require": "./dist/veritas-sdk.cjs.js",
+      "browser": "./dist/veritas-sdk.umd.js"
+    }
+  }
+}
+
