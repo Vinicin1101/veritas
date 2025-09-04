@@ -1,7 +1,7 @@
 // Servidor de teste simples para simular backend
 import express from 'express';
 import cors from 'cors';
-import { createHmac } from 'crypto';
+import { evaluateRisk, riskDecision } from '../../dist/veritas-sdk.esm.js'; // use o bundle!
 
 const app = express();
 const PORT = 3000;
@@ -10,102 +10,34 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Função para verificar HMAC
-function verifyHmac(message, signature, secret) {
-    try {
-        const expectedSignature = createHmac('sha256', secret)
-            .update(message)
-            .digest('base64');
-        return expectedSignature === signature;
-    } catch (error) {
-        return false;
-    }
-}
+// Permitir configuração via env ou parâmetro
+const DEFAULT_RISK_THRESHOLD = process.env.RISK_THRESHOLD
+    ? parseInt(process.env.RISK_THRESHOLD, 10)
+    : 40;
 
-// Função simples de avaliação de risco
-function evaluateRisk(data) {
-    let score = 0;
+// Middleware antifraude configurável
+function antifraudMiddleware(req, res, next) {
+    const data = req.body;
+    const score = evaluateRisk(data);
     
-    // Verificar fingerprints
-    if (!data.fingerprints?.canvas) score += 20;
-    if (!data.fingerprints?.webgl) score += 15;
-    if (!data.fingerprints?.audio) score += 10;
-    
-    // Verificar comportamento
-    if (data.behavior?.mouseEvents?.length < 5) score += 25;
-    if (data.behavior?.keyboardEvents?.length < 3) score += 20;
-    
-    // Verificar timezone suspeito
-    if (data.timezone?.timezone === 'UTC') score += 15;
-    
-    // Ação específica
-    if (data.action?.action === 'purchase' && data.action?.amount > 1000) {
-        score += 30;
-    }
-    
-    return Math.min(100, score);
+    // Decisão baseada em threshold padrão ou customizado
+    const customThreshold = DEFAULT_RISK_THRESHOLD;
+    const { decision, reasons } = riskDecision(score, data, DEFAULT_RISK_THRESHOLD);
+
+    req.risk = { score, decision, reasons, threshold: customThreshold };
+    next();
 }
 
 // Endpoint principal do SDK
-app.post('/identity/verify', (req, res) => {
-    console.log('📨 Requisição recebida:', {
-        timestamp: new Date().toISOString(),
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        hasSignature: !!req.headers['x-sdk-signature']
-    });
-    
-    const signature = req.headers['x-sdk-signature'];
-    const secret = 'test-secret-key';
-    
-    // Verificar assinatura se presente
-    if (signature) {
-        const isValid = verifyHmac(
-            JSON.stringify(req.body),
-            signature,
-            secret
-        );
-        
-        if (!isValid) {
-            console.log('❌ Assinatura HMAC inválida');
-            return res.status(401).json({
-                error: 'Assinatura inválida',
-                decision: 'deny'
-            });
-        }
-        console.log('✅ Assinatura HMAC válida');
-    }
-    
-    // Avaliar risco
-    const riskScore = evaluateRisk(req.body);
-    let decision = 'allow';
-    
-    if (riskScore >= 80) {
-        decision = 'deny';
-    } else if (riskScore >= 50) {
-        decision = 'review';
-    }
-    
+app.post('/identity/verify', antifraudMiddleware, (req, res) => {
+    const { score, decision, reasons } = req.risk;
     const response = {
         decision,
-        score: riskScore,
+        score,
         sessionId: req.body.sessionId || req.body.sdkSessionId,
         timestamp: Date.now(),
-        reasons: []
+        reasons
     };
-    
-    // Adicionar razões baseadas no score
-    if (riskScore >= 50) {
-        response.reasons.push('Comportamento suspeito detectado');
-    }
-    if (!req.body.fingerprints?.canvas) {
-        response.reasons.push('Fingerprint de canvas ausente');
-    }
-    if (req.body.action?.amount > 1000) {
-        response.reasons.push('Valor de transação alto');
-    }
-    
-    console.log('📊 Resposta:', response);
     res.json(response);
 });
 

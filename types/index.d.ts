@@ -40,12 +40,6 @@ export interface TimezoneInfo {
   locale: string;
 }
 
-export interface Fingerprints {
-  canvas: string | null;
-  webgl: string | null;
-  audio: string | null;
-}
-
 export interface MouseEvent {
   x: number;
   y: number;
@@ -85,7 +79,6 @@ export interface CollectedData {
   browser: BrowserInfo;
   screen: ScreenInfo;
   timezone: TimezoneInfo;
-  fingerprints: Fingerprints;
   plugins: any[];
   storage: Record<string, boolean>;
   behavior: BehaviorData;
@@ -103,7 +96,6 @@ export interface RiskResponse {
 
 export declare class Veritas {
   constructor(options?: SDKOptions);
-  init(): Veritas;
   collect(): CollectedData;
   send(data: CollectedData): Promise<RiskResponse>;
   collectAndSend(): Promise<RiskResponse>;
@@ -114,7 +106,6 @@ export declare class Veritas {
   destroy(): void;
 }
 
-export declare function initSDK(options?: SDKOptions): Veritas;
+export declare function init(options?: SDKOptions): Veritas;
 
 export default Veritas;
-

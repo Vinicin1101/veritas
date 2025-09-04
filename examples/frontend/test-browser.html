@@ -144,16 +144,17 @@
 
         function initializeSDK() {
             try {
-                sdk = new Veritas.Veritas({
+                // sdk = new Veritas.Veritas();
+                sdk = Veritas.init();
+
+                sdk.configure({
                     endpoint: 'http://localhost:3000/identity/verify',
                     secret: 'test-secret-key',
                     debug: true,
                     collectInterval: 300,
-                    autoCollect: false // Iniciar sem coleta automática
+                    autoCollect: false
                 });
-                
-                sdk.init();
-                
+                                
                 showResult('init-result', '✅ SDK inicializado com sucesso!');
                 console.log('SDK inicializado:', sdk);
             } catch (error) {
@@ -187,14 +188,18 @@
             try {
                 showResult('risk-result', '⏳ Verificando risco...');
                 
-                const result = await sdk.checkRisk({
+                sdk.checkRisk({
                     action: 'login',
                     userId: 'user123',
                     timestamp: Date.now()
+                }).then(result => {
+                    showResult('risk-result', `✅ Risco verificado!<br><pre>${JSON.stringify(result, null, 2)}</pre>`);
+                    console.log('Resultado da verificação:', result);
+                }).catch(error => {
+                    showResult('risk-result', `❌ Erro ao verificar risco: ${error.message}`, true);
+                    console.error('Erro:', error);
                 });
                 
-                showResult('risk-result', `✅ Risco verificado!<br><pre>${JSON.stringify(result, null, 2)}</pre>`);
-                console.log('Resultado da verificação:', result);
             } catch (error) {
                 showResult('risk-result', `❌ Erro ao verificar risco: ${error.message}`, true);
                 console.error('Erro:', error);
