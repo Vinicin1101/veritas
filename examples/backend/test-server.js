@@ -1,7 +1,7 @@
 // Servidor de teste simples para simular backend
 import express from 'express';
 import cors from 'cors';
-import { evaluateRisk, riskDecision } from '../../dist/veritas-sdk.esm.js'; // use o bundle!
+import { evaluateRisk, riskDecision } from './risk.js';
 
 const app = express();
 const PORT = 3000;
@@ -21,10 +21,9 @@ function antifraudMiddleware(req, res, next) {
     const score = evaluateRisk(data);
     
     // Decisão baseada em threshold padrão ou customizado
-    const customThreshold = DEFAULT_RISK_THRESHOLD;
     const { decision, reasons } = riskDecision(score, data, DEFAULT_RISK_THRESHOLD);
 
-    req.risk = { score, decision, reasons, threshold: customThreshold };
+    req.risk = { score, decision, reasons, threshold: DEFAULT_RISK_THRESHOLD };
     next();
 }
 

@@ -80,6 +80,7 @@ export interface CollectedData {
   screen: ScreenInfo;
   timezone: TimezoneInfo;
   plugins: any[];
+  adBlock: boolean | undefined;
   storage: Record<string, boolean>;
   behavior: BehaviorData;
   sdkVersion?: string;

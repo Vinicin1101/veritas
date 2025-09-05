@@ -89,13 +89,6 @@
         </div>
 
         <div class="test-section">
-            <h3>4. Controle de Coleta Automática</h3>
-            <button onclick="startAutoCollection()">Iniciar Coleta Automática</button>
-            <button onclick="stopAutoCollection()">Parar Coleta Automática</button>
-            <div id="auto-result" class="result" style="display: none;"></div>
-        </div>
-
-        <div class="test-section">
             <h3>5. Logs do Console</h3>
             <div id="console-logs" style="max-height: 200px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px;"></div>
         </div>
@@ -138,6 +131,8 @@
         function showResult(elementId, content, isError = false) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
+            element.style.overflow = 'auto';
+            element.style.maxHeight = '400px';
             element.className = `result ${isError ? 'error' : 'success'}`;
             element.innerHTML = content;
         }
@@ -163,14 +158,22 @@
             }
         }
 
-        function collectData() {
+        async function collectData() {
             if (!sdk) {
                 showResult('collect-result', '❌ SDK não foi inicializado', true);
                 return;
             }
 
             try {
-                const data = sdk.collect();
+
+                // Configurar opções de coleta. Por definição Plugins, Storage e Behavior não são coletados.
+                sdk.configureCollect({
+                    collectPlugins: false,
+                    collectStorage: true,
+                    collectBehavior: true
+                });
+
+                const data = await sdk.collect();
                 showResult('collect-result', `✅ Dados coletados com sucesso!<br><pre>${JSON.stringify(data, null, 2)}</pre>`);
                 console.log('Dados coletados:', data);
             } catch (error) {
@@ -217,7 +220,7 @@
                 
                 const result = await sdk.checkRisk({
                     action: 'purchase',
-                    amount: 299.99,
+                    amount: 2999.99,
                     currency: 'BRL',
                     productId: 'prod123'
                 });
@@ -226,38 +229,6 @@
                 console.log('Resultado da verificação de compra:', result);
             } catch (error) {
                 showResult('risk-result', `❌ Erro ao verificar risco: ${error.message}`, true);
-                console.error('Erro:', error);
-            }
-        }
-
-        function startAutoCollection() {
-            if (!sdk) {
-                showResult('auto-result', '❌ SDK não foi inicializado', true);
-                return;
-            }
-
-            try {
-                sdk.startAutoCollection();
-                showResult('auto-result', '✅ Coleta automática iniciada!');
-                console.log('Coleta automática iniciada');
-            } catch (error) {
-                showResult('auto-result', `❌ Erro ao iniciar coleta automática: ${error.message}`, true);
-                console.error('Erro:', error);
-            }
-        }
-
-        function stopAutoCollection() {
-            if (!sdk) {
-                showResult('auto-result', '❌ SDK não foi inicializado', true);
-                return;
-            }
-
-            try {
-                sdk.stopAutoCollection();
-                showResult('auto-result', '✅ Coleta automática parada!');
-                console.log('Coleta automática parada');
-            } catch (error) {
-                showResult('auto-result', `❌ Erro ao parar coleta automática: ${error.message}`, true);
                 console.error('Erro:', error);
             }
         }
