@@ -1,0 +1,34 @@
+[
+  {
+    "id": "fingerprint",
+    "name": "Fingerprint Check",
+    "description": "Verifica se há fingerprint de canvas disponível",
+    "expression": "fingerprint && fingerprint !== 'unavailable'",
+    "weight": 150,
+    "action": "allow"
+  },
+  {
+    "id": "suspicious_user_agent",
+    "name": "Suspicious User Agent",
+    "description": "Detecta user agents suspeitos",
+    "expression": "browser.userAgent.includes('bot') || browser.userAgent.includes('spider') || browser.userAgent.includes('scraper') || browser.userAgent.includes('curl') || browser.userAgent.includes('crawler')",
+    "weight": -30,
+    "action": "review"
+  },
+  {
+    "id": "facial_verification",
+    "name": "Facial Verification",
+    "description": "Bonus por verificação facial bem-sucedida",
+    "expression": "facial && facial.imageData && !facial.error",
+    "weight": 25,
+    "action": "allow"
+  },
+  {
+    "id": "high_behavioral_frequency",
+    "name": "High Behavioral Frequency",
+    "description": "Detecta atividade comportamental anormalmente alta",
+    "expression": "behavior && behavior.clickFrequency > 0.5",
+    "weight": -10,
+    "action": "review"
+  }
+]
