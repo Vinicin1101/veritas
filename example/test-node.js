@@ -1,5 +1,5 @@
 // Teste do SDK em ambiente Node.js
-import { Veritas, init, createHmac, verifyHmac } from '../../dist/veritas-sdk.esm.js';
+import { Veritas, init, createHmac, verifyHmac } from '../dist/veritas-sdk.esm.js';
 import 'crypto';
 
 console.log('🔒 Testando SDK Antifraude em Node.js\n');

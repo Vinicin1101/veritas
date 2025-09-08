@@ -7,7 +7,7 @@ const production = !process.env.ROLLUP_WATCH;
 export default [
   // UMD build para CDN/browser
   {
-    input: 'src/index.js',
+    input: 'src/frontend/index.js',
     output: [
       {
         file: 'dist/veritas-sdk.umd.js',
@@ -30,7 +30,7 @@ export default [
   },
   // ESM build
   {
-    input: 'src/index.js',
+    input: 'src/frontend/index.js',
     output: {
       file: 'dist/veritas-sdk.esm.js',
       format: 'es',
@@ -44,7 +44,7 @@ export default [
   },
   // CommonJS build para Node.js
   {
-    input: 'src/index.js',
+    input: 'src/frontend/index.js',
     output: {
       file: 'dist/veritas-sdk.cjs.js',
       format: 'cjs',

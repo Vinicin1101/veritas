@@ -4,26 +4,100 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Veritas = {}));
 })(this, (function (exports) { 'use strict';
 
-  let mouseEvents = [];
-  let keyboardEvents = [];
-  let focusEvents = [];
-  let scrollEvents = [];
+  class BehaviorCollector {
+    constructor() {
+      this.mouseEvents = [];
+      this.keyboardEvents = [];
+      this.focusEvents = [];
+      this.scrollEvents = [];
+      this.clickEvents = [];
+      this.listenersInitialized = false;
+    }
 
-  let listenersInitialized = false;
+    initListeners() {
+      if (this.listenersInitialized || typeof window === 'undefined') return;
 
-  // Funções auxiliares
+      // Mouse
+      window.addEventListener('mousemove', (e) => {
+        this.mouseEvents.push({ x: e.clientX, y: e.clientY, timestamp: Date.now() });
+        if (this.mouseEvents.length > 100) this.mouseEvents.shift();
+      });
+
+      // Teclado
+      window.addEventListener('keydown', (e) => {
+        this.keyboardEvents.push({
+          key: e.key,
+          timestamp: Date.now(),
+          ctrlKey: e.ctrlKey,
+          altKey: e.altKey,
+          shiftKey: e.shiftKey
+        });
+        if (this.keyboardEvents.length > 100) this.keyboardEvents.shift();
+      });
+
+      // Foco
+      window.addEventListener('focus', (e) => {
+        this.focusEvents.push({ type: 'focus', timestamp: Date.now(), target: e.target?.tagName || '' });
+      }, true);
+
+      window.addEventListener('blur', (e) => {
+        this.focusEvents.push({ type: 'blur', timestamp: Date.now(), target: e.target?.tagName || '' });
+      }, true);
+
+      // Scroll
+      window.addEventListener('scroll', () => {
+        this.scrollEvents.push({ x: window.scrollX, y: window.scrollY, timestamp: Date.now() });
+        if (this.scrollEvents.length > 100) this.scrollEvents.shift();
+      });
+
+      // Click
+      window.addEventListener('click', (e) => {
+        this.clickEvents.push({ timestamp: Date.now(), x: e.clientX, y: e.clientY });
+        if (this.clickEvents.length > 100) this.clickEvents.shift();
+      });
+
+      this.listenersInitialized = true;
+    }
+
+    clickFrequency(windowMs = 10000) {
+      const now = Date.now();
+      const recentClicks = this.clickEvents.filter(c => now - c.timestamp <= windowMs);
+      return recentClicks.length / (windowMs / 1000); // cliques por segundo
+    }
+
+    avgClickInterval() {
+      if (this.clickEvents.length < 2) return null;
+      let intervals = [];
+      for (let i = 1; i < this.clickEvents.length; i++) {
+        intervals.push(this.clickEvents[i].timestamp - this.clickEvents[i - 1].timestamp);
+      }
+      return intervals.reduce((a, b) => a + b, 0) / intervals.length;
+    }
+
+    getBehavior() {
+      return {
+        mouseEvents: [...this.mouseEvents],
+        keyboardEvents: [...this.keyboardEvents],
+        focusEvents: [...this.focusEvents],
+        scrollEvents: [...this.scrollEvents],
+        clickEvents: [...this.clickEvents],
+        clickFrequency: this.clickFrequency(),
+        avgClickInterval: this.avgClickInterval()
+      };
+    }
+  }
+
+  // ==================== Helpers ====================
+
   function getBrowserInfo() {
     return {
       userAgent: navigator.userAgent,
       language: navigator.language,
       languages: navigator.languages,
-      platform: navigator.platform,
       cookieEnabled: navigator.cookieEnabled,
       doNotTrack: navigator.doNotTrack,
       hardwareConcurrency: navigator.hardwareConcurrency,
       maxTouchPoints: navigator.maxTouchPoints,
-      vendor: navigator.vendor,
-      vendorSub: navigator.vendorSub
     };
   }
 
@@ -62,58 +136,45 @@
     };
   }
 
-  function getBehavior() {
-    return {
-      mouseEvents: [...mouseEvents],
-      keyboardEvents: [...keyboardEvents],
-      focusEvents: [...focusEvents],
-      scrollEvents: [...scrollEvents]
-    };
+  function collectFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = "14px 'Arial'";
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(125,1,62,20);
+      ctx.fillStyle = '#069';
+      ctx.fillText('fingerprint', 2, 15);
+      ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+      ctx.fillText('fingerprint', 4, 17);
+      return canvas.toDataURL();
+    } catch (e) {
+      return 'unavailable';
+    }
   }
 
-  // Função principal de coleta
-  function collectData(options = {}) {
-    if (!listenersInitialized && typeof window !== 'undefined' && options.collectBehavior !== false) {
-      // Mouse
-      window.addEventListener('mousemove', (e) => {
-        mouseEvents.push({ x: e.clientX, y: e.clientY, timestamp: Date.now() });
-        if (mouseEvents.length > 100) mouseEvents.shift();
-      });
-      // Teclado
-      window.addEventListener('keydown', (e) => {
-        keyboardEvents.push({
-          key: e.key,
-          timestamp: Date.now(),
-          ctrlKey: e.ctrlKey,
-          altKey: e.altKey,
-          shiftKey: e.shiftKey
-        });
-        if (keyboardEvents.length > 100) keyboardEvents.shift();
-      });
-      // Foco
-      window.addEventListener('focus', (e) => {
-        focusEvents.push({ type: 'focus', timestamp: Date.now(), target: e.target?.tagName || '' });
-      }, true);
-      window.addEventListener('blur', (e) => {
-        focusEvents.push({ type: 'blur', timestamp: Date.now(), target: e.target?.tagName || '' });
-      }, true);
-      // Scroll
-      window.addEventListener('scroll', (e) => {
-        scrollEvents.push({ x: window.scrollX, y: window.scrollY, timestamp: Date.now() });
-        if (scrollEvents.length > 100) scrollEvents.shift();
-      });
+  // ==================== Main Collector ====================
 
-      listenersInitialized = true;
+  const behaviorCollector = new BehaviorCollector();
+
+  function collectData(options = {}) {
+    if (options.collectBehavior !== false) {
+      behaviorCollector.initListeners();
     }
 
     return {
       timestamp: Date.now(),
       browser: getBrowserInfo(),
-      screen: getScreenInfo(),
+      fingerprint: options.collectFingerprint !== false ? collectFingerprint() : undefined,
       timezone: getTimezoneInfo(),
       plugins: options.collectPlugins !== false ? getPlugins() : undefined,
       storage: options.collectStorage !== false ? getStorageInfo() : undefined,
-      behavior: options.collectBehavior !== false ? getBehavior() : undefined
+      behavior: options.collectBehavior !== false ? {
+        screen: getScreenInfo(),
+        ...behaviorCollector.getBehavior()
+      } : undefined
     };
   }
 
@@ -224,7 +285,7 @@
     }
 
     /**
-     * @param {CollectOptions} options
+     * @param {CollectOptions} CollectOptions
      */
     configureCollect(options = {}) {
       this.collectOptions = { ...this.collectOptions, ...options };
