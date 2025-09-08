@@ -88,16 +88,28 @@ export interface CollectedData {
   action?: any;
 }
 
+export interface RiskBreakdown {
+  rule?: number;
+  behavioral?: number;
+  fingerprint?: number;
+  facial?: number;
+  dataQuality?: number;
+}
+
 export interface RiskResponse {
   decision: 'allow' | 'review' | 'deny';
   score: number;
   reasons?: string[];
+  breakdown?: RiskBreakdown;
+  thresholds?: Record<string, number>;
   sessionId?: string;
+  timestamp?: number;
+  error?: string;
 }
 
 export declare class Veritas {
   constructor(options?: SDKOptions);
-  collect(): CollectedData;
+  collect(): Promise<CollectedData>;
   send(data: CollectedData): Promise<RiskResponse>;
   collectAndSend(): Promise<RiskResponse>;
   checkRisk(actionData?: any): Promise<RiskResponse>;
