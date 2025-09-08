@@ -1,23 +1,16 @@
-let mouseEvents = [];
-let keyboardEvents = [];
-let focusEvents = [];
-let scrollEvents = [];
+import { BehaviorCollector } from './BehaviorCollector.js';
 
-let listenersInitialized = false;
+// ==================== Helpers ====================
 
-// Funções auxiliares
 function getBrowserInfo() {
   return {
     userAgent: navigator.userAgent,
     language: navigator.language,
     languages: navigator.languages,
-    platform: navigator.platform,
     cookieEnabled: navigator.cookieEnabled,
     doNotTrack: navigator.doNotTrack,
     hardwareConcurrency: navigator.hardwareConcurrency,
     maxTouchPoints: navigator.maxTouchPoints,
-    vendor: navigator.vendor,
-    vendorSub: navigator.vendorSub
   };
 }
 
@@ -56,57 +49,44 @@ function getStorageInfo() {
   };
 }
 
-function getBehavior() {
-  return {
-    mouseEvents: [...mouseEvents],
-    keyboardEvents: [...keyboardEvents],
-    focusEvents: [...focusEvents],
-    scrollEvents: [...scrollEvents]
-  };
+function collectFingerprint() {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = "14px 'Arial'";
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125,1,62,20);
+    ctx.fillStyle = '#069';
+    ctx.fillText('fingerprint', 2, 15);
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.fillText('fingerprint', 4, 17);
+    return canvas.toDataURL();
+  } catch (e) {
+    return 'unavailable';
+  }
 }
 
-// Função principal de coleta
-export function collectData(options = {}) {
-  if (!listenersInitialized && typeof window !== 'undefined' && options.collectBehavior !== false) {
-    // Mouse
-    window.addEventListener('mousemove', (e) => {
-      mouseEvents.push({ x: e.clientX, y: e.clientY, timestamp: Date.now() });
-      if (mouseEvents.length > 100) mouseEvents.shift();
-    });
-    // Teclado
-    window.addEventListener('keydown', (e) => {
-      keyboardEvents.push({
-        key: e.key,
-        timestamp: Date.now(),
-        ctrlKey: e.ctrlKey,
-        altKey: e.altKey,
-        shiftKey: e.shiftKey
-      });
-      if (keyboardEvents.length > 100) keyboardEvents.shift();
-    });
-    // Foco
-    window.addEventListener('focus', (e) => {
-      focusEvents.push({ type: 'focus', timestamp: Date.now(), target: e.target?.tagName || '' });
-    }, true);
-    window.addEventListener('blur', (e) => {
-      focusEvents.push({ type: 'blur', timestamp: Date.now(), target: e.target?.tagName || '' });
-    }, true);
-    // Scroll
-    window.addEventListener('scroll', (e) => {
-      scrollEvents.push({ x: window.scrollX, y: window.scrollY, timestamp: Date.now() });
-      if (scrollEvents.length > 100) scrollEvents.shift();
-    });
+// ==================== Main Collector ====================
 
-    listenersInitialized = true;
+const behaviorCollector = new BehaviorCollector();
+
+export function collectData(options = {}) {
+  if (options.collectBehavior !== false) {
+    behaviorCollector.initListeners();
   }
 
   return {
     timestamp: Date.now(),
     browser: getBrowserInfo(),
-    screen: getScreenInfo(),
+    fingerprint: options.collectFingerprint !== false ? collectFingerprint() : undefined,
     timezone: getTimezoneInfo(),
     plugins: options.collectPlugins !== false ? getPlugins() : undefined,
     storage: options.collectStorage !== false ? getStorageInfo() : undefined,
-    behavior: options.collectBehavior !== false ? getBehavior() : undefined
+    behavior: options.collectBehavior !== false ? {
+      screen: getScreenInfo(),
+      ...behaviorCollector.getBehavior()
+    } : undefined
   };
 }
